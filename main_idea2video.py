@@ -46,6 +46,13 @@ style = "写实风格"
 # When empty, the pipeline auto-generates a character reference image.
 reference_image = ""  # e.g. "./my_character.jpg" or "https://example.com/photo.jpg"
 
+# Optional: enable scene chaining mode for visual continuity.
+# When True, each scene's first frame is derived from the previous
+# scene's last frame via image-to-image generation, creating smooth
+# transitions between scenes. Each scene should be ~10 seconds.
+# This mode is sequential (not parallel), so total time = N scenes × (video + img2img).
+scene_chaining = False
+
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -91,6 +98,7 @@ async def main():
         user_requirement=user_requirement,
         style=style,
         reference_image=reference_image,
+        scene_chaining=scene_chaining,
     )
     print(f"\nDone! Final video: {final_path}")
 
