@@ -55,13 +55,60 @@ class VideoGeneratorAgnesAPI:
         return f"data:{mime};base64,{b64}"
 
     def _resolve_image_ref(self, ref: str) -> str:
-        """Resolve an image reference: return URL as-is, convert local path to b64."""
-        if ref.startswith(("http://", "https://", "data:")):
+        """Resolve an image reference: return URL as-is, convert local path to hosted URL.
+
+        For local files, uploads the image via Agnes image-to-image API to get
+        a hosted URL, avoiding base64 payload timeout issues in video submission.
+        Falls back to base64 if the upload fails.
+        """
+        if ref.startswith(("http://", "https://")):
+            return ref
+        if ref.startswith("data:"):
             return ref
         if os.path.exists(ref):
-            logger.info(f"[Agnes Video] Converting local image to b64: {ref}")
+            # Try to upload via img2img API to get a hosted URL (avoids b64 timeout)
+            url = self._upload_image_to_url(ref)
+            if url:
+                return url
+            # Fallback to b64
+            logger.warning("[Agnes Video] Image upload failed, falling back to base64.")
             return self._path_to_b64(ref)
         return ref
+
+    def _upload_image_to_url(self, image_path: str) -> Optional[str]:
+        """Upload a local image via Agnes img2img API to get a hosted URL.
+
+        Returns the hosted URL string, or None on failure.
+        """
+        try:
+            b64_data = self._path_to_b64(image_path)
+            payload = {
+                "model": "agnes-image-2.1-flash",
+                "prompt": "Keep the image exactly as it is",
+                "n": 1,
+                "size": "1024x1024",
+                "extra_body": {
+                    "response_format": "url",
+                    "image": b64_data,
+                },
+            }
+            resp = requests.post(
+                f"{BASE_URL}/images/generations",
+                headers=self.headers,
+                json=payload,
+                timeout=120,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            data_list = result.get("data", [])
+            if data_list:
+                url = data_list[0].get("url", "")
+                if url:
+                    logger.info(f"[Agnes Video] Image uploaded to hosted URL: {url[:80]}...")
+                    return url
+        except Exception as e:
+            logger.warning(f"[Agnes Video] Image upload to URL failed: {e}")
+        return None
 
     def _get_frame_config(self, duration: Optional[int] = None) -> tuple:
         d = duration or self.default_duration
@@ -142,7 +189,7 @@ class VideoGeneratorAgnesAPI:
         if negative_prompt:
             payload["negative_prompt"] = negative_prompt
 
-        # Resolve local paths to b64 data URIs
+        # Resolve image refs: URLs as-is, local files uploaded to hosted URLs
         resolved_refs = [self._resolve_image_ref(p) for p in reference_image_paths]
         n_refs = len(resolved_refs)
 
@@ -169,7 +216,7 @@ class VideoGeneratorAgnesAPI:
                 f"{BASE_URL}/videos",
                 headers=self.headers,
                 json=payload,
-                timeout=30,
+                timeout=300,
             )
             resp.raise_for_status()
         except requests.exceptions.HTTPError as e:

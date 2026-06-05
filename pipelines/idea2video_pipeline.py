@@ -117,8 +117,19 @@ class Idea2VideoPipeline:
         idea: str,
         user_requirement: str,
         style: str,
+        reference_image: str = "",
     ) -> str:
-        """Run the full pipeline and return the path to the final video."""
+        """Run the full pipeline and return the path to the final video.
+
+        Args:
+            idea: Creative concept / story idea.
+            user_requirement: Constraints (audience, scenes, duration, etc.).
+            style: Visual style (e.g. "Realistic", "Anime", "Cartoon").
+            reference_image: Optional path or URL to a reference image.
+                If provided, this image is used as the first-frame reference
+                for ALL scene videos (ti2vid mode) instead of auto-generating
+                a character reference. Supports local file paths and URLs.
+        "
 
         # ── Step 1: Develop Story ──
         story_path = os.path.join(self.working_dir, "story.txt")
@@ -136,9 +147,16 @@ class Idea2VideoPipeline:
         print(f"📖 STORY:\n{story[:500]}...")
         print(f"{'='*60}\n")
 
-        # ── Step 2: Generate Character Reference Image ──
-        # This ensures character consistency across all scenes
-        character_ref_path = await self._get_character_reference(story, style)
+        # ── Step 2: Character Reference Image ──
+        # This ensures character consistency across all scenes.
+        # If the user provided a reference image, use it directly;
+        # otherwise, auto-generate one from the story's character description.
+        if reference_image:
+            character_ref_path = reference_image
+            logger.info(f"Using user-provided reference image: {reference_image}")
+            print(f"📌 Using user-provided reference image: {reference_image}")
+        else:
+            character_ref_path = await self._get_character_reference(story, style)
 
         # ── Step 3: Write Script ──
         script_path = os.path.join(self.working_dir, "script.json")
@@ -212,6 +230,6 @@ class Idea2VideoPipeline:
 
         return final_video_path
 
-    async def __call__(self, idea: str, user_requirement: str, style: str) -> str:
+    async def __call__(self, idea: str, user_requirement: str, style: str, reference_image: str = "") -> str:
         """Alias for run()."""
-        return await self.run(idea=idea, user_requirement=user_requirement, style=style)
+        return await self.run(idea=idea, user_requirement=user_requirement, style=style, reference_image=reference_image)

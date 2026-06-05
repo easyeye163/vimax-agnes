@@ -40,6 +40,12 @@ user_requirement = \
 
 style = "写实风格"
 
+# Optional: provide a reference image (local path or URL).
+# If set, this image will be used as the first-frame reference for
+# ALL scene videos (ti2vid mode), keeping character/scene consistency.
+# When empty, the pipeline auto-generates a character reference image.
+reference_image = ""  # e.g. "./my_character.jpg" or "https://example.com/photo.jpg"
+
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -84,6 +90,7 @@ async def main():
         idea=idea,
         user_requirement=user_requirement,
         style=style,
+        reference_image=reference_image,
     )
     print(f"\nDone! Final video: {final_path}")
 

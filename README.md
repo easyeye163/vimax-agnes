@@ -15,8 +15,10 @@
 ## Architecture
 
 ```
-+-----------------+
++------------------+
 |   Your Idea     |
+| + (Optional)    |
+| Reference Image |
 +--------+--------+
          |
 +-----------------+
@@ -25,14 +27,14 @@
 +--------+--------+
          |
 +------------------+
-| Character Ref    | <- Agnes Image API (agnes-image-2.1-flash)
-| Image Generation |    Extract character description from story,
-+--------+--------+    generate a reference image for consistency
+| Character Ref    | <- User-provided image, or auto-generated
+| Image            |    via Agnes Image API (agnes-image-2.1-flash)
++--------+--------+    from story's character description
          |
 +-----------------+
 |  Video Generator| <- Agnes Video API (agnes-video-v2.0)
 |  ti2vid mode    |    Each scene uses the SAME reference image
-|  (per scene)    |    to maintain character appearance
+|  (per scene)    |    as first frame for consistency
 +--------+--------+
          |
 +-----------------+
@@ -43,7 +45,7 @@
 
 ### Why Character Reference Image?
 
-Without a reference image, each scene's text-to-video generation may produce a different-looking character. By generating ONE reference image of the main character first, then passing it to every scene's `ti2vid` request, the character's appearance stays consistent throughout the entire video.
+Without a reference image, each scene's text-to-video generation may produce a different-looking character. By providing (or auto-generating) ONE reference image, then passing it to every scene's `ti2vid` request as the first frame, the character/scene appearance stays consistent throughout the entire video.
 
 ## Quick Start
 
@@ -98,6 +100,24 @@ Output: `.working_dir/idea2video/final_video.mp4`
 | `idea` | Your creative concept | "A robot learns to paint" |
 | `user_requirement` | Constraints (audience, scenes, duration) | "For adults, 5 scenes max" |
 | `style` | Visual style | "Cartoon", "Realistic", "Anime", "Watercolor" |
+| `reference_image` | *(Optional)* Path or URL of a reference image | "./my_character.jpg" |
+
+### Using a Reference Image
+
+By default, the pipeline auto-generates a character reference image from the story. But you can provide your own image instead:
+
+```python
+reference_image = "./my_character.jpg"   # local file path
+# or
+reference_image = "https://example.com/photo.jpg"  # URL
+```
+
+When `reference_image` is set:
+- The provided image is used as the **first-frame reference** for ALL scene videos (ti2vid mode)
+- Character/scene consistency is maintained across the entire video
+- The auto-generation of character reference image is skipped
+
+This is especially useful when you have a specific character or scene image that you want to keep consistent.
 
 ### Video Duration
 
@@ -119,6 +139,7 @@ Supported: 5s, 10s, 15s, 18s, 20s
 |---------|----------|-------|
 | Chat (Story/Script) | POST `/v1/chat/completions` | agnes-2.0-flash |
 | Character Reference | POST `/v1/images/generations` | agnes-image-2.1-flash |
+| Image Upload to URL | POST `/v1/images/generations` (img2img) | agnes-image-2.1-flash |
 | Scene Video (ti2vid) | POST `/v1/videos` (image + mode=ti2vid) | agnes-video-v2.0 |
 | Task Polling | GET `/v1/videos/{task_id}` | - |
 
@@ -163,9 +184,9 @@ vimax-agnes/
 ## Pipeline Flow
 
 1. **Story Development**: LLM expands your idea into a structured story with detailed character descriptions
-2. **Character Reference**: LLM extracts character appearance description -> generates a reference image
+2. **Character Reference**: Uses the provided reference image, or auto-generates one from the story's character description
 3. **Script Writing**: LLM divides the story into scenes with dialogue and actions
-4. **Scene Videos**: Each scene generates a video using the character reference image (ti2vid mode)
+4. **Scene Videos**: Each scene generates a video using the reference image (ti2vid mode) as the first frame
 5. **Concatenation**: All scene videos are joined into the final output
 
 ## Credits
