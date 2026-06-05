@@ -4,6 +4,9 @@ Supports three modes:
   - Text-to-video (t2v): prompt only, no reference images
   - Image-to-video (ti2vid): 1 reference image as first frame
   - Keyframes video: 2+ reference images (first + last frame)
+
+Includes automatic retry with exponential backoff for 429 (rate limit)
+and 5xx (server error) responses.
 """
 
 import asyncio
@@ -38,10 +41,14 @@ class VideoGeneratorAgnesAPI:
         api_key: str,
         model: str = "agnes-video-v2.0",
         default_duration: int = 5,
+        max_retries: int = 5,
+        retry_base_delay: float = 30.0,
     ):
         self.api_key = api_key
         self.model = model
         self.default_duration = default_duration
+        self.max_retries = max_retries
+        self.retry_base_delay = retry_base_delay
         self.headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -75,39 +82,48 @@ class VideoGeneratorAgnesAPI:
             return self._path_to_b64(ref)
         return ref
 
-    def _upload_image_to_url(self, image_path: str) -> Optional[str]:
+    def _upload_image_to_url(self, image_path: str, retries: int = 3) -> Optional[str]:
         """Upload a local image via Agnes img2img API to get a hosted URL.
 
         Returns the hosted URL string, or None on failure.
+        Includes retry logic for 429 errors.
         """
-        try:
-            b64_data = self._path_to_b64(image_path)
-            payload = {
-                "model": "agnes-image-2.1-flash",
-                "prompt": "Keep the image exactly as it is",
-                "n": 1,
-                "size": "1024x1024",
-                "extra_body": {
-                    "response_format": "url",
-                    "image": b64_data,
-                },
-            }
-            resp = requests.post(
-                f"{BASE_URL}/images/generations",
-                headers=self.headers,
-                json=payload,
-                timeout=120,
-            )
-            resp.raise_for_status()
-            result = resp.json()
-            data_list = result.get("data", [])
-            if data_list:
-                url = data_list[0].get("url", "")
-                if url:
-                    logger.info(f"[Agnes Video] Image uploaded to hosted URL: {url[:80]}...")
-                    return url
-        except Exception as e:
-            logger.warning(f"[Agnes Video] Image upload to URL failed: {e}")
+        for attempt in range(retries):
+            try:
+                b64_data = self._path_to_b64(image_path)
+                payload = {
+                    "model": "agnes-image-2.1-flash",
+                    "prompt": "Keep the image exactly as it is",
+                    "n": 1,
+                    "size": "1024x1024",
+                    "extra_body": {
+                        "response_format": "url",
+                        "image": b64_data,
+                    },
+                }
+                resp = requests.post(
+                    f"{BASE_URL}/images/generations",
+                    headers=self.headers,
+                    json=payload,
+                    timeout=120,
+                )
+                if resp.status_code == 429:
+                    delay = 30 * (attempt + 1)
+                    logger.warning(f"[Agnes Video] Image upload 429, retry in {delay}s...")
+                    time.sleep(delay)
+                    continue
+                resp.raise_for_status()
+                result = resp.json()
+                data_list = result.get("data", [])
+                if data_list:
+                    url = data_list[0].get("url", "")
+                    if url:
+                        logger.info(f"[Agnes Video] Image uploaded to hosted URL: {url[:80]}...")
+                        return url
+            except Exception as e:
+                logger.warning(f"[Agnes Video] Image upload attempt {attempt+1}/{retries} failed: {e}")
+                if attempt < retries - 1:
+                    time.sleep(15)
         return None
 
     def _get_frame_config(self, duration: Optional[int] = None) -> tuple:
@@ -154,6 +170,66 @@ class VideoGeneratorAgnesAPI:
             await asyncio.sleep(interval)
 
         raise TimeoutError(f"Video task {task_id} timed out after {timeout}s")
+
+    def _submit_with_retry(self, payload: dict, mode_desc: str) -> str:
+        """Submit a video generation task with retry logic for transient errors.
+
+        Retries on HTTP 429 (rate limit) and 5xx (server error).
+        Returns task_id on success.
+        """
+        for attempt in range(self.max_retries):
+            try:
+                resp = requests.post(
+                    f"{BASE_URL}/videos",
+                    headers=self.headers,
+                    json=payload,
+                    timeout=120,
+                )
+
+                # Success
+                if resp.status_code == 200:
+                    result = resp.json()
+                    task_id = result.get("task_id") or result.get("id")
+                    if task_id:
+                        return task_id
+
+                # Rate limited — wait and retry
+                if resp.status_code == 429:
+                    delay = self.retry_base_delay * (attempt + 1)
+                    logger.warning(
+                        f"[Agnes Video] 429 rate limit on {mode_desc}, "
+                        f"retry {attempt+1}/{self.max_retries} in {delay:.0f}s..."
+                    )
+                    await asyncio.sleep(delay) if False else time.sleep(delay)
+                    continue
+
+                # Server error — wait and retry
+                if resp.status_code >= 500:
+                    delay = self.retry_base_delay * (attempt + 1)
+                    logger.warning(
+                        f"[Agnes Video] {resp.status_code} server error on {mode_desc}, "
+                        f"retry {attempt+1}/{self.max_retries} in {delay:.0f}s..."
+                    )
+                    time.sleep(delay)
+                    continue
+
+                # Other HTTP error — don't retry
+                error_detail = resp.text[:500]
+                logger.error(f"[Agnes Video] HTTP {resp.status_code}: {error_detail}")
+                raise RuntimeError(f"Agnes video submit failed (HTTP {resp.status_code}): {error_detail}")
+
+            except requests.exceptions.Timeout:
+                delay = self.retry_base_delay * (attempt + 1)
+                logger.warning(
+                    f"[Agnes Video] Timeout on {mode_desc}, "
+                    f"retry {attempt+1}/{self.max_retries} in {delay:.0f}s..."
+                )
+                time.sleep(delay)
+                continue
+
+        raise RuntimeError(
+            f"[Agnes Video] {mode_desc}: max retries ({self.max_retries}) exceeded"
+        )
 
     async def generate_single_video(
         self,
@@ -211,32 +287,8 @@ class VideoGeneratorAgnesAPI:
 
         logger.info(f"[Agnes Video] {mode_desc}: {prompt[:80]}...")
 
-        try:
-            resp = requests.post(
-                f"{BASE_URL}/videos",
-                headers=self.headers,
-                json=payload,
-                timeout=300,
-            )
-            resp.raise_for_status()
-        except requests.exceptions.HTTPError as e:
-            error_detail = ""
-            try:
-                error_detail = resp.text[:500]
-            except Exception:
-                pass
-            logger.error(f"[Agnes Video] HTTP {resp.status_code}: {error_detail}")
-            raise
-
-        result = resp.json()
-
-        if "error" in result:
-            raise RuntimeError(f"Agnes video error: {result['error']}")
-
-        task_id = result.get("task_id") or result.get("id")
-        if not task_id:
-            raise RuntimeError(f"Agnes video: no task_id returned: {result}")
-
+        # Submit with retry
+        task_id = self._submit_with_retry(payload, mode_desc)
         logger.info(f"[Agnes Video] Task submitted: {task_id[:20]}... waiting...")
 
         # Poll until done
