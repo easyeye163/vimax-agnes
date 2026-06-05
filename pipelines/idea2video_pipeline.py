@@ -1,6 +1,7 @@
 """Idea2Video Pipeline — orchestrates the full idea-to-video generation flow.
 
-Flow: idea → story → script (scenes) → shots → first/last frame images → videos → final
+Flow:
+  idea -> story -> character reference image -> script (scenes) -> videos (ti2vid) -> final
 """
 
 import asyncio
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class Idea2VideoPipeline:
-    """End-to-end pipeline: idea → story → scenes → shots → images → videos → final."""
+    """End-to-end pipeline: idea -> story -> character ref -> scenes -> videos -> final."""
 
     def __init__(
         self,
@@ -56,7 +57,6 @@ class Idea2VideoPipeline:
         img_cfg = config.get("image_generator", {}).get("init_args", {})
         vid_cfg = config.get("video_generator", {}).get("init_args", {})
 
-        # Merge api_key if not set in individual configs
         if not img_cfg.get("api_key"):
             img_cfg["api_key"] = api_key
         if not vid_cfg.get("api_key"):
@@ -73,6 +73,45 @@ class Idea2VideoPipeline:
             working_dir=config.get("working_dir", ".working_dir/idea2video"),
         )
 
+    # ────────────────────────────────────────────────────
+    # Step: Generate character reference image
+    # ────────────────────────────────────────────────────
+
+    async def _get_character_reference(self, story: str, style: str) -> str:
+        """Generate (or load cached) character reference image. Returns local file path."""
+        ref_prompt_path = os.path.join(self.working_dir, "character_ref_prompt.txt")
+        ref_img_path = os.path.join(self.working_dir, "character_reference.png")
+
+        # Check cache
+        if os.path.exists(ref_img_path) and os.path.exists(ref_prompt_path):
+            logger.info("Character reference image loaded from cache.")
+            return ref_img_path
+
+        # Extract character description from story
+        char_prompt = self.screenwriter.extract_character_description(story, style)
+        with open(ref_prompt_path, "w") as f:
+            f.write(char_prompt)
+
+        # Generate reference image
+        print(f"\n{'='*60}")
+        print(f"🎨 CHARACTER REFERENCE PROMPT:\n{char_prompt}")
+        print(f"{'='*60}\n")
+
+        print("🖼️ Generating character reference image...")
+        img_output = await self.image_generator.generate_single_image(
+            prompt=char_prompt,
+            size="1152x768",
+        )
+        img_output.save(ref_img_path)
+        logger.info(f"Character reference saved: {ref_img_path}")
+        print(f"✅ Character reference image saved: {ref_img_path}")
+
+        return ref_img_path
+
+    # ────────────────────────────────────────────────────
+    # Main pipeline
+    # ────────────────────────────────────────────────────
+
     async def run(
         self,
         idea: str,
@@ -86,35 +125,40 @@ class Idea2VideoPipeline:
         if os.path.exists(story_path):
             with open(story_path, "r") as f:
                 story = f.read()
-            logger.info("🚀 Story loaded from cache.")
+            logger.info("Story loaded from cache.")
         else:
             story = self.screenwriter.develop_story(idea, user_requirement, style)
             with open(story_path, "w") as f:
                 f.write(story)
-            logger.info(f"✅ Story saved to {story_path}")
+            logger.info(f"Story saved to {story_path}")
 
         print(f"\n{'='*60}")
         print(f"📖 STORY:\n{story[:500]}...")
         print(f"{'='*60}\n")
 
-        # ── Step 2: Write Script ──
+        # ── Step 2: Generate Character Reference Image ──
+        # This ensures character consistency across all scenes
+        character_ref_path = await self._get_character_reference(story, style)
+
+        # ── Step 3: Write Script ──
         script_path = os.path.join(self.working_dir, "script.json")
         if os.path.exists(script_path):
             with open(script_path, "r") as f:
                 scenes = json.load(f)
-            logger.info(f"🚀 Script loaded from cache ({len(scenes)} scenes).")
+            logger.info(f"Script loaded from cache ({len(scenes)} scenes).")
         else:
             scenes = self.screenwriter.write_script(story, user_requirement, style)
             with open(script_path, "w") as f:
                 json.dump(scenes, f, ensure_ascii=False, indent=2)
-            logger.info(f"✅ Script saved ({len(scenes)} scenes)")
+            logger.info(f"Script saved ({len(scenes)} scenes)")
 
         print(f"🎬 SCENES: {len(scenes)}")
         for i, scene in enumerate(scenes):
             print(f"  Scene {i}: {scene[:100]}...")
+        print(f"📌 Character reference: {character_ref_path}")
         print()
 
-        # ── Step 3: For each scene → shots → images → videos ──
+        # ── Step 4: For each scene -> generate video (ti2vid with character ref) ──
         all_video_paths = []
 
         for scene_idx, scene_text in enumerate(scenes):
@@ -125,54 +169,40 @@ class Idea2VideoPipeline:
             scene_dir = os.path.join(self.working_dir, f"scene_{scene_idx}")
             os.makedirs(scene_dir, exist_ok=True)
 
-            # Design shots
-            shots_path = os.path.join(scene_dir, "shots.json")
-            if os.path.exists(shots_path):
-                with open(shots_path, "r") as f:
-                    shots = json.load(f)
-                logger.info(f"🚀 Shots loaded from cache ({len(shots)} shots).")
-            else:
-                shots = self.screenwriter.design_shots_for_scene(scene_text, style)
-                with open(shots_path, "w") as f:
-                    json.dump(shots, f, ensure_ascii=False, indent=2)
-                logger.info(f"✅ {len(shots)} shots designed.")
+            video_path = os.path.join(scene_dir, "video.mp4")
 
-            print(f"  Shots: {len(shots)}")
-            for j, shot in enumerate(shots):
-                print(f"    Shot {j}: {shot['ff_desc'][:80]}... → {shot['lf_desc'][:80]}...")
+            # Skip if video already exists
+            if os.path.exists(video_path):
+                logger.info(f"Scene {scene_idx} video exists, skipping.")
+                all_video_paths.append(video_path)
+                continue
 
-            # Generate first/last frame images + videos for each shot
-            shot_video_paths = await self._process_shots(shots, scene_dir)
+            # Generate video using character reference image (ti2vid mode)
+            print(f"  🎬 Generating video for scene {scene_idx} (ti2vid with character ref)...")
+            video_output = await self.video_generator.generate_single_video(
+                prompt=scene_text,
+                reference_image_paths=[character_ref_path],
+                duration=self.video_duration,
+            )
+            video_output.save(video_path)
+            logger.info(f"  ✅ Video saved: {video_path}")
+            all_video_paths.append(video_path)
 
-            # Concatenate shot videos into scene video
-            if len(shot_video_paths) > 1:
-                scene_video_path = os.path.join(scene_dir, "scene_video.mp4")
-                if not os.path.exists(scene_video_path):
-                    clips = [VideoFileClip(p) for p in shot_video_paths]
-                    final = concatenate_videoclips(clips, method="compose")
-                    final.write_videofile(scene_video_path, logger=None)
-                    for c in clips:
-                        c.close()
-                    logger.info(f"✅ Scene {scene_idx} video: {scene_video_path}")
-                all_video_paths.append(scene_video_path)
-            elif shot_video_paths:
-                all_video_paths.append(shot_video_paths[0])
-
-        # ── Step 4: Concatenate all scene videos ──
+        # ── Step 5: Concatenate all scene videos ──
         final_video_path = os.path.join(self.working_dir, "final_video.mp4")
         if os.path.exists(final_video_path):
-            logger.info(f"🚀 Final video already exists: {final_video_path}")
+            logger.info(f"Final video already exists: {final_video_path}")
         elif len(all_video_paths) > 1:
-            logger.info(f"🎬 Concatenating {len(all_video_paths)} scene videos...")
+            logger.info(f"Concatenating {len(all_video_paths)} scene videos...")
             clips = [VideoFileClip(p) for p in all_video_paths]
             final = concatenate_videoclips(clips, method="compose")
-            final.write_videofile(final_video_path, logger=None)
+            final.write_videofile(final_video_path, logger="bar")
             for c in clips:
                 c.close()
-            logger.info(f"✅ Final video: {final_video_path}")
+            logger.info(f"Final video: {final_video_path}")
         elif all_video_paths:
             shutil.copy2(all_video_paths[0], final_video_path)
-            logger.info(f"✅ Final video (single scene): {final_video_path}")
+            logger.info(f"Final video (single scene): {final_video_path}")
         else:
             raise RuntimeError("No videos were generated!")
 
@@ -181,68 +211,6 @@ class Idea2VideoPipeline:
         print(f"{'='*60}\n")
 
         return final_video_path
-
-    async def _process_shots(self, shots: list, scene_dir: str) -> list:
-        """Process all shots in a scene: generate frames → videos."""
-        video_paths = []
-
-        for shot_idx, shot in enumerate(shots):
-            shot_dir = os.path.join(scene_dir, f"shot_{shot_idx}")
-            os.makedirs(shot_dir, exist_ok=True)
-
-            ff_path = os.path.join(shot_dir, "first_frame.png")
-            lf_path = os.path.join(shot_dir, "last_frame.png")
-            video_path = os.path.join(shot_dir, "video.mp4")
-
-            # Skip if video already exists
-            if os.path.exists(video_path):
-                logger.info(f"🚀 Shot {shot_idx} video exists, skipping.")
-                video_paths.append(video_path)
-                continue
-
-            # Generate first frame
-            if not os.path.exists(ff_path):
-                print(f"  🖼️ Generating first frame for shot {shot_idx}...")
-                ff_output = await self.image_generator.generate_single_image(
-                    prompt=shot["ff_desc"],
-                    size="1152x768",
-                )
-                ff_output.save(ff_path)
-                logger.info(f"  ✅ First frame saved: {ff_path}")
-
-            # Generate last frame (if variation is not "small")
-            use_keyframes = shot.get("variation_type", "medium") != "small"
-            if use_keyframes and not os.path.exists(lf_path):
-                print(f"  🖼️ Generating last frame for shot {shot_idx}...")
-                lf_output = await self.image_generator.generate_single_image(
-                    prompt=shot["lf_desc"],
-                    reference_image_paths=[ff_path],
-                    size="1152x768",
-                )
-                lf_output.save(lf_path)
-                logger.info(f"  ✅ Last frame saved: {lf_path}")
-
-            # Generate video
-            print(f"  🎬 Generating video for shot {shot_idx}...")
-
-            if use_keyframes and os.path.exists(lf_path):
-                # Keyframes mode: first + last frame → video
-                ref_images = [ff_path, lf_path]
-            else:
-                # Single image mode: first frame → video
-                ref_images = [ff_path]
-
-            motion_desc = shot.get("motion_desc", "")
-            video_output = await self.video_generator.generate_single_video(
-                prompt=motion_desc,
-                reference_image_paths=ref_images,
-                duration=self.video_duration,
-            )
-            video_output.save(video_path)
-            logger.info(f"  ✅ Video saved: {video_path}")
-            video_paths.append(video_path)
-
-        return video_paths
 
     async def __call__(self, idea: str, user_requirement: str, style: str) -> str:
         """Alias for run()."""

@@ -63,11 +63,13 @@ well-structured stories with clear scenes, characters, and dialogue.
 - Story Title
 - Target Audience & Genre
 - Story Outline (1 paragraph)
-- Main Characters Introduction
-- Full Story Narrative (Introduction → Development → Climax → Conclusion)
+- Main Characters Introduction (with detailed appearance descriptions)
+- Full Story Narrative (Introduction -> Development -> Climax -> Conclusion)
 
 IMPORTANT: Write the story in the SAME LANGUAGE as the input idea.
 Keep it concise but vivid, suitable for adaptation into short video scenes.
+Include DETAILED character appearance descriptions (clothing, body type, \
+hair, distinguishing features, color palette) to enable consistent image generation.
 """
         user_prompt = f"""\
 <idea>
@@ -128,6 +130,55 @@ Rules:
         scenes = result.get("scenes", [])
         logger.info(f"[Screenwriter] Script written: {len(scenes)} scenes")
         return scenes
+
+    def extract_character_description(self, story: str, style: str) -> str:
+        """Extract a detailed character reference image prompt from the story.
+
+        Returns a single prompt string suitable for generating a character
+        reference image that can be reused across all scenes for consistency.
+        """
+        system_prompt = """\
+You are a visual design expert. Your job is to extract a detailed image \
+generation prompt for the MAIN CHARACTER from the story, suitable for \
+generating a CHARACTER REFERENCE IMAGE.
+
+The reference image should show the main character in a clear, full-body \
+or three-quarter view pose, in a neutral standing position, with distinctive \
+features clearly visible. The image should capture the character's appearance \
+exactly as described in the story, including:
+
+- Body type and posture
+- Clothing and accessories
+- Hair style and color
+- Facial features and expressions
+- Skin color, texture, or material (for non-human characters)
+- Any distinguishing marks, scars, or features
+- Color palette of the character
+
+The prompt should be in ENGLISH regardless of the story language, for best \
+image generation results. It should be a single paragraph, 3-5 sentences, \
+rich in visual detail. Include the art style (e.g., "realistic cinematic", \
+"anime style", "watercolor illustration").
+
+Output ONLY the image prompt text, no JSON, no explanation.
+"""
+        user_prompt = f"""\
+<story>
+{story}
+</story>
+
+<style>{style}</style>
+"""
+        logger.info("[Screenwriter] Extracting character reference prompt...")
+        prompt = self._chat(system_prompt, user_prompt).strip()
+        # Remove any markdown wrapping
+        if prompt.startswith("```"):
+            prompt = prompt.split("\n", 1)[1]
+            if prompt.endswith("```"):
+                prompt = prompt[:-3]
+            prompt = prompt.strip()
+        logger.info(f"[Screenwriter] Character prompt: {prompt[:100]}...")
+        return prompt
 
     def design_shots_for_scene(self, scene_text: str, style: str, max_shots: int = 5) -> list:
         """Design shot-level storyboard for a single scene."""

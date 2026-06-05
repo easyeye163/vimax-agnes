@@ -47,7 +47,6 @@ def resolve_api_key() -> str:
     """Resolve API key from config or environment."""
     key = os.environ.get("AGNES_API_KEY", "")
     if not key:
-        # Try to read from config
         config_path = os.path.join(os.path.dirname(__file__), "configs", "idea2video.yaml")
         if os.path.exists(config_path):
             import yaml
@@ -55,11 +54,10 @@ def resolve_api_key() -> str:
                 config = yaml.safe_load(f)
             key = config.get("api_key", "")
             if key.startswith("${") and key.endswith("}"):
-                # It's an env var reference
                 env_name = key[2:-1]
                 key = os.environ.get(env_name, "")
     if not key:
-        print("❌ Error: AGNES_API_KEY not set.")
+        print("Error: AGNES_API_KEY not set.")
         print("   Please set it via:")
         print("     export AGNES_API_KEY='your-api-key'")
         print("   Or edit configs/idea2video.yaml")
@@ -87,7 +85,7 @@ async def main():
         user_requirement=user_requirement,
         style=style,
     )
-    print(f"\n🎉 Done! Final video: {final_path}")
+    print(f"\nDone! Final video: {final_path}")
 
 
 if __name__ == "__main__":
