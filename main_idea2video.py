@@ -30,28 +30,32 @@ logging.basicConfig(
 
 idea = \
 """
-一个机器人在温泉旁边徘徊，不确定能不能游泳
+唱歌跳舞：一位美丽的女孩站在绚丽的舞台上，先是深情演唱，然后切换为活力四射的舞蹈表演，最后以一个惊艳的定格动作结束
 """
 
 user_requirement = \
 """
-不超过5个场景
+3个场景，每个场景10秒，电影质感，MV风格，竖屏拍摄
 """
 
-style = "写实风格"
+style = "电影质感MV风格"
 
 # Optional: provide a reference image (local path or URL).
 # If set, this image will be used as the first-frame reference for
 # ALL scene videos (ti2vid mode), keeping character/scene consistency.
 # When empty, the pipeline auto-generates a character reference image.
-reference_image = ""  # e.g. "./my_character.jpg" or "https://example.com/photo.jpg"
+reference_image = "/home/z/my-project/upload/weixin-image.jpg"
 
 # Optional: enable scene chaining mode for visual continuity.
 # When True, each scene's first frame is derived from the previous
 # scene's last frame via image-to-image generation, creating smooth
 # transitions between scenes. Each scene should be ~10 seconds.
 # This mode is sequential (not parallel), so total time = N scenes × (video + img2img).
-scene_chaining = False
+scene_chaining = True
+
+# Video dimensions (portrait 768x1152 for vertical reference images)
+video_width = 768
+video_height = 1152
 
 # ═══════════════════════════════════════════════════════════════
 
@@ -99,6 +103,8 @@ async def main():
         style=style,
         reference_image=reference_image,
         scene_chaining=scene_chaining,
+        video_width=video_width,
+        video_height=video_height,
     )
     print(f"\nDone! Final video: {final_path}")
 

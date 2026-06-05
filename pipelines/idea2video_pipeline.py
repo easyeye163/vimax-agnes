@@ -31,10 +31,14 @@ class Idea2VideoPipeline:
         image_model: str = "agnes-image-2.1-flash",
         video_model: str = "agnes-video-v2.0",
         video_duration: int = 5,
+        video_width: int = 1152,
+        video_height: int = 768,
         working_dir: str = ".working_dir/idea2video",
     ):
         self.api_key = api_key
         self.video_duration = video_duration
+        self.video_width = video_width
+        self.video_height = video_height
         self.working_dir = working_dir
         os.makedirs(working_dir, exist_ok=True)
 
@@ -71,6 +75,8 @@ class Idea2VideoPipeline:
             image_model=img_cfg.get("model", "agnes-image-2.1-flash"),
             video_model=vid_cfg.get("model", "agnes-video-v2.0"),
             video_duration=vid_cfg.get("default_duration", 5),
+            video_width=vid_cfg.get("width", 1152),
+            video_height=vid_cfg.get("height", 768),
             working_dir=config.get("working_dir", ".working_dir/idea2video"),
         )
 
@@ -126,7 +132,7 @@ class Idea2VideoPipeline:
         subprocess.run(cmd, capture_output=True, timeout=30, check=True)
         return output_path
 
-    async def _generate_chained_scenes(self, scenes: list, reference_image: str) -> list:
+    async def _generate_chained_scenes(self, scenes: list, reference_image: str, vw: int = 1152, vh: int = 768) -> list:
         """Generate scenes sequentially with frame chaining for continuity.
 
         Flow for each scene:
@@ -165,6 +171,8 @@ class Idea2VideoPipeline:
                 prompt=scene_text,
                 reference_image_paths=[current_image],
                 duration=self.video_duration,
+                width=vw,
+                height=vh,
             )
             video_output.save(video_path)
             all_video_paths.append(video_path)
@@ -212,6 +220,8 @@ class Idea2VideoPipeline:
         style: str,
         reference_image: str = "",
         scene_chaining: bool = False,
+        video_width: int = 0,
+        video_height: int = 0,
     ) -> str:
         """Run the full pipeline and return the path to the final video.
 
@@ -228,7 +238,12 @@ class Idea2VideoPipeline:
                 image-to-image generation, creating visual continuity between
                 scenes. This is sequential (not parallel). Recommended with
                 10-second scenes and reference_image.
+            video_width: Video width in pixels (0 = use default from config).
+            video_height: Video height in pixels (0 = use default from config).
         """
+        # Resolve video dimensions
+        vw = video_width or self.video_width
+        vh = video_height or self.video_height
 
         # ── Step 1: Develop Story ──
         story_path = os.path.join(self.working_dir, "story.txt")
@@ -283,7 +298,7 @@ class Idea2VideoPipeline:
         if scene_chaining:
             # Scene chaining: sequential generation with frame continuity
             all_video_paths = await self._generate_chained_scenes(
-                scenes, character_ref_path
+                scenes, character_ref_path, vw, vh
             )
         else:
             # Original parallel mode: same reference image for all scenes
@@ -309,6 +324,8 @@ class Idea2VideoPipeline:
                     prompt=scene_text,
                     reference_image_paths=[character_ref_path],
                     duration=self.video_duration,
+                    width=vw,
+                    height=vh,
                 )
                 video_output.save(video_path)
                 logger.info(f"  ✅ Video saved: {video_path}")
@@ -345,6 +362,8 @@ class Idea2VideoPipeline:
         style: str,
         reference_image: str = "",
         scene_chaining: bool = False,
+        video_width: int = 0,
+        video_height: int = 0,
     ) -> str:
         """Alias for run()."""
         return await self.run(
@@ -353,4 +372,6 @@ class Idea2VideoPipeline:
             style=style,
             reference_image=reference_image,
             scene_chaining=scene_chaining,
+            video_width=video_width,
+            video_height=video_height,
         )

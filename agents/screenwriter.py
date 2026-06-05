@@ -90,27 +90,35 @@ hair, distinguishing features, color palette) to enable consistent image generat
         return story
 
     def write_script(self, story: str, user_requirement: str, style: str) -> List[str]:
-        """Write a script divided into scenes from a story."""
+        """Write a script divided by scenes from a story.
+
+        Each scene description is a detailed visual prompt suitable for
+        AI video generation (in English for best results).
+        """
         system_prompt = """\
-You are a professional scriptwriter. Adapt the given story into a video script \
-divided by scenes. Each scene must share the same time and location.
+You are a professional video director and visual prompt engineer. Adapt the \
+given story into detailed visual scene descriptions for AI video generation.
 
 [Output Format] Return a JSON object:
 {
   "scenes": [
-    "Scene 1 narrative with character actions and dialogue...",
-    "Scene 2 narrative...",
+    "Scene 1 visual prompt (detailed English description for video generation)...",
+    "Scene 2 visual prompt...",
     ...
   ]
 }
 
 Rules:
-- Each scene is a self-contained paragraph describing location, characters, actions, and dialogue.
-- Character names in descriptions should be enclosed in angle brackets, e.g. <Tom>.
-- Dialogue format: <CharacterName> says: "dialogue text"
-- Include visual details useful for generating images (lighting, mood, composition).
-- IMPORTANT: Output the scene text in the SAME LANGUAGE as the input story.
-- Number of scenes must respect the user requirement constraints.
+- Each scene MUST be a detailed VISUAL DESCRIPTION in ENGLISH, suitable for AI video generation.
+- Do NOT include character names in angle brackets or dialogue tags.
+- Focus on: camera movement, lighting, colors, environment, character actions, atmosphere, mood.
+- Include specific visual details: lens type (wide/telephoto), depth of field, camera angle, \
+lighting direction, color grading, particle effects, weather.
+- Each scene should be 80-150 words, rich in cinematic detail.
+- Maintain visual consistency across scenes (same character appearance, coherent world).
+- Number of scenes MUST respect the user requirement constraints.
+- The art style should match the requested style (realistic cinematic, anime, etc.).
+- Describe MOTION and ACTION, not static images — this is for video generation.
 """
         user_prompt = f"""\
 <story>
@@ -125,7 +133,7 @@ Rules:
 {style}
 </style>
 """
-        logger.info("[Screenwriter] Writing script...")
+        logger.info("[Screenwriter] Writing script (visual prompts for video generation)...")
         result = self._chat_json(system_prompt, user_prompt)
         scenes = result.get("scenes", [])
         logger.info(f"[Screenwriter] Script written: {len(scenes)} scenes")

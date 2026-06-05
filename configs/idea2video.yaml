@@ -17,6 +17,6 @@ video_generator:
   class_path: tools.VideoGeneratorAgnesAPI
   init_args:
     model: agnes-video-v2.0
-    default_duration: 5
+    default_duration: 10
 
 working_dir: .working_dir/idea2video
