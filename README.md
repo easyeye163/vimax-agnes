@@ -1,56 +1,55 @@
-# ViMax-Agnes 🎬🐱
+# ViMax-Agnes
 
 **Agentic Video Generation powered entirely by Agnes AI.**
 
-> A lightweight adaptation of [ViMax](https://github.com/HKUDS/ViMax) that replaces Google Veo/Gemini with Agnes AI's free unlimited API for image and video generation.
+> A lightweight adaptation of [ViMax](https://github.com/HKUDS/ViMax) that replaces Google Veo/Gemini with Agnes AI's API for image and video generation.
 
-## ✨ Features
+## Features
 
-- **Idea → Video**: Just provide a creative idea, style, and simple requirements
-- **Full Agnes Integration**: Uses Agnes AI for everything — chat (story/script planning), image generation, and video generation
-- **Smart Pipeline**: Story → Script → Shots → First/Last Frame Images → Videos → Final Video
+- **Idea -> Video**: Just provide a creative idea, style, and simple requirements
+- **Full Agnes Integration**: Uses Agnes AI for everything -- chat (story/script planning), image generation, and video generation
+- **Smart Pipeline**: Story -> Script -> Shots -> First/Last Frame Images -> Videos -> Final Video
 - **Character Consistency**: Uses `ti2vid` mode (image-to-video) and `keyframes` mode for visual continuity
-- **Cache System**: Intermediate results (story, script, images, videos) are cached — re-run only generates missing parts
-- **Free & Unlimited**: Powered by Agnes AI's free API
+- **Cache System**: Intermediate results (story, script, images, videos) are cached -- re-run only generates missing parts
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-┌─────────────┐
-│   Your Idea  │
-└──────┬──────┘
-       ▼
-┌─────────────────┐
-│  Screenwriter    │ ← Agnes Chat API (agnes-2.0-flash)
-│  Story + Script  │
-└──────┬──────────┘
-       ▼
-┌─────────────────┐
-│  Shot Planner    │ ← Agnes Chat API
-│  Storyboard      │
-└──────┬──────────┘
-       ▼
-┌─────────────────┐
-│  Image Generator │ ← Agnes Image API (agnes-image-2.1-flash)
-│  First/Last Frame│
-└──────┬──────────┘
-       ▼
-┌─────────────────┐
-│  Video Generator │ ← Agnes Video API (agnes-video-v2.0)
-│  ti2vid/keyframes│
-└──────┬──────────┘
-       ▼
-┌─────────────────┐
-│  Concatenation   │ ← moviepy
-│  Final Video     │
-└─────────────────┘
++-----------------+
+|   Your Idea     |
++--------+--------+
+         |
++-----------------+
+|  Screenwriter   | <- Agnes Chat API (agnes-2.0-flash)
+|  Story + Script |
++--------+--------+
+         |
++-----------------+
+|  Shot Planner   | <- Agnes Chat API
+|  Storyboard     |
++--------+--------+
+         |
++-----------------+
+|  Image Generator| <- Agnes Image API (agnes-image-2.1-flash)
+|  First/Last Frame|
++--------+--------+
+         |
++-----------------+
+|  Video Generator| <- Agnes Video API (agnes-video-v2.0)
+|  ti2vid/keyframes|
++--------+--------+
+         |
++-----------------+
+|  Concatenation  | <- moviepy
+|  Final Video    |
++-----------------+
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Get Agnes API Key
 
-Register at [platform.agnes-ai.com](https://platform.agnes-ai.com) — free, no credit card needed.
+Register at [platform.agnes-ai.com](https://platform.agnes-ai.com).
 
 ### 2. Install Dependencies
 
@@ -68,6 +67,22 @@ Or edit `configs/idea2video.yaml`.
 
 ### 4. Run!
 
+Edit `main_idea2video.py` with your idea:
+
+```python
+idea = """
+A robot pacing by a hot spring, wondering if it can swim
+"""
+
+user_requirement = """
+No more than 5 scenes
+"""
+
+style = "Realistic"
+```
+
+Then:
+
 ```bash
 python main_idea2video.py
 ```
@@ -76,25 +91,7 @@ python main_idea2video.py
 
 Output: `.working_dir/idea2video/final_video.mp4`
 
-## ⚙️ Configuration
-
-Edit `main_idea2video.py`:
-
-```python
-idea = \
-"""
-If a cat and a dog are best friends, what would happen when they meet a new cat?
-"""
-
-user_requirement = \
-"""
-For children, do not exceed 3 scenes.
-"""
-
-style = "Cartoon"
-```
-
-### Parameters
+## Parameters
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
@@ -114,7 +111,7 @@ video_generator:
 
 Supported: 5s, 10s, 15s, 18s, 20s
 
-## 🎥 Video Generation Modes
+## Video Generation Modes
 
 The pipeline automatically selects the best mode:
 
@@ -124,39 +121,66 @@ The pipeline automatically selects the best mode:
 | `medium` | keyframes | First frame + Last frame |
 | `small` | ti2vid | First frame only |
 
-## 🔄 Pipeline Flow
+## Agnes API Details
 
-1. **Story Development**: LLM expands your idea into a structured story
-2. **Script Writing**: LLM divides the story into scenes with dialogue and actions
-3. **Shot Design**: LLM creates shot-level storyboards with first/last frame descriptions
-4. **Image Generation**: Agnes generates first frame (and last frame for keyframe shots)
-5. **Video Generation**: Agnes generates video clips from frames
-6. **Concatenation**: All scene videos are joined into the final output
+### Endpoints
 
-## 📁 Output Structure
+| Purpose | Endpoint | Model |
+|---------|----------|-------|
+| Chat (Story/Script) | POST `/v1/chat/completions` | agnes-2.0-flash |
+| Text-to-Image | POST `/v1/images/generations` | agnes-image-2.1-flash |
+| Image-to-Image | POST `/v1/images/generations` (extra_body) | agnes-image-2.0-flash |
+| Text-to-Video | POST `/v1/videos` | agnes-video-v2.0 |
+| Image-to-Video | POST `/v1/videos` (image + mode=ti2vid) | agnes-video-v2.0 |
+| Keyframes Video | POST `/v1/videos` (extra_body: image[] + mode=keyframes) | agnes-video-v2.0 |
+| Task Polling | GET `/v1/videos/{task_id}` | - |
+
+### Duration Control
+
+Video duration is controlled by `num_frames` and `frame_rate`:
+
+| Duration | num_frames | frame_rate |
+|----------|-----------|------------|
+| 5s | 121 | 24 |
+| 10s | 241 | 24 |
+| 15s | 361 | 24 |
+| 18s | 441 | 24 |
+| 20s | 441 | 22 |
+
+Note: `num_frames` must follow the 8n+1 pattern, max 441.
+
+## Project Structure
 
 ```
-.working_dir/idea2video/
-├── story.txt              # Generated story
-├── script.json            # Scene scripts
-├── scene_0/
-│   ├── shots.json          # Shot descriptions
-│   ├── shot_0/
-│   │   ├── first_frame.png
-│   │   ├── last_frame.png
-│   │   └── video.mp4
-│   ├── shot_1/
-│   │   └── ...
-│   └── scene_video.mp4
-├── scene_1/
-│   └── ...
-└── final_video.mp4         # ← Final output!
+vimax-agnes/
++-- main_idea2video.py          # Entry point - edit your idea here
++-- configs/
+|   +-- idea2video.yaml         # API configuration
++-- agents/
+|   +-- screenwriter.py         # LLM-powered story/script generation
++-- tools/
+|   +-- image_generator_agnes_api.py  # Agnes image generation
+|   +-- video_generator_agnes_api.py  # Agnes video generation (t2v, ti2vid, keyframes)
+|   +-- render_backend.py       # Config-based backend initialization
+|   +-- protocols.py            # Type contracts
++-- interfaces/
+|   +-- shot_description.py     # Shot data model
+|   +-- image_output.py         # Image output container
+|   +-- video_output.py         # Video output container
++-- utils/
+|   +-- image.py                # Image download & b64 conversion
+|   +-- video.py                # Video download
++-- pipelines/
+|   +-- idea2video_pipeline.py  # Main orchestration pipeline
++-- requirements.txt
++-- LICENSE
++-- README.md
 ```
 
-## 🙏 Credits
+## Credits
 
-- [ViMax](https://github.com/HKUDS/ViMax) — Original agentic video generation framework
-- [Agnes AI](https://platform.agnes-ai.com) — Free unlimited AI generation API
+- [ViMax](https://github.com/HKUDS/ViMax) -- Original agentic video generation framework
+- [Agnes AI](https://platform.agnes-ai.com) -- AI generation API
 
 ## License
 

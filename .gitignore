@@ -1,6 +1,6 @@
+.working_dir/
 __pycache__/
 *.pyc
-.working_dir/
-*.mp4
-*.png
 .env
+.idea/
+.vscode/

@@ -30,15 +30,15 @@ logging.basicConfig(
 
 idea = \
 """
-If a cat and a dog are best friends, what would happen when they meet a new cat?
+一个机器人在温泉旁边徘徊，不确定能不能游泳
 """
 
 user_requirement = \
 """
-For children, do not exceed 3 scenes.
+不超过5个场景
 """
 
-style = "Cartoon"
+style = "写实风格"
 
 # ═══════════════════════════════════════════════════════════════
 
