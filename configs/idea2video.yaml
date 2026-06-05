@@ -1,0 +1,22 @@
+# ViMax-Agnes Configuration
+# All APIs powered by Agnes AI (https://apihub.agnes-ai.com/v1)
+
+# Set your Agnes API key here, or use environment variable AGNES_API_KEY
+api_key: ${AGNES_API_KEY}
+
+chat_model:
+  init_args:
+    model: agnes-2.0-flash
+
+image_generator:
+  class_path: tools.ImageGeneratorAgnesAPI
+  init_args:
+    model: agnes-image-2.1-flash
+
+video_generator:
+  class_path: tools.VideoGeneratorAgnesAPI
+  init_args:
+    model: agnes-video-v2.0
+    default_duration: 5
+
+working_dir: .working_dir/idea2video
