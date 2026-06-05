@@ -1,7 +1,12 @@
 """Idea2Video Pipeline — orchestrates the full idea-to-video generation flow.
 
 Flow:
-  idea -> story -> character reference image -> script (scenes) -> videos (ti2vid) -> final
+  idea -> story -> character reference image -> script (scenes) -> videos -> final
+
+Chaining modes:
+  - "none": each scene independent, same reference image (ti2vid)
+  - "ti2vid": sequential, img2img transition between scenes
+  - "keyframes": sequential, first+last frame keyframes for smooth transitions
 """
 
 import asyncio
@@ -132,6 +137,89 @@ class Idea2VideoPipeline:
         subprocess.run(cmd, capture_output=True, timeout=30, check=True)
         return output_path
 
+    # ────────────────────────────────────────────────────
+    # Keyframes Chaining: first+last frame for each scene
+    # ────────────────────────────────────────────────────
+
+    async def _generate_keyframe_chained_scenes(
+        self,
+        scenes: list,
+        end_frame_prompts: list,
+        reference_image: str,
+        vw: int = 1152,
+        vh: int = 768,
+    ) -> list:
+        """Generate scenes with keyframes chaining (first + last frame).
+
+        Flow for each scene:
+          1. first_frame = previous scene's end_frame (or reference image)
+          2. Generate end_frame image from end_frame_prompt
+          3. Submit video with keyframes mode [first_frame, end_frame]
+          4. AI fills motion between first and last frame
+
+        Returns list of video file paths.
+        """
+        all_video_paths = []
+        current_first_frame = reference_image
+
+        for scene_idx, scene_text in enumerate(scenes):
+            print(f"\n{'─'*50}")
+            print(f"🎞️  Scene {scene_idx} (keyframes chain)")
+            print(f"{'─'*50}")
+
+            scene_dir = os.path.join(self.working_dir, f"scene_{scene_idx}")
+            os.makedirs(scene_dir, exist_ok=True)
+            video_path = os.path.join(scene_dir, "video.mp4")
+
+            # Skip if video already exists
+            if os.path.exists(video_path):
+                logger.info(f"Scene {scene_idx} exists, skipping.")
+                all_video_paths.append(video_path)
+                end_frame_path = os.path.join(scene_dir, "end_frame.png")
+                if os.path.exists(end_frame_path):
+                    current_first_frame = end_frame_path
+                continue
+
+            # Step A: Generate end-of-scene frame image
+            end_frame_prompt = end_frame_prompts[scene_idx]
+            end_frame_path = os.path.join(scene_dir, "end_frame.png")
+
+            print(f"  🖼️  Generating end frame for scene {scene_idx}...")
+            print(f"  Prompt: {end_frame_prompt[:120]}...")
+            img_output = await self.image_generator.generate_single_image(
+                prompt=end_frame_prompt,
+                size=f"{vw}x{vh}",
+            )
+            img_output.save(end_frame_path)
+            print(f"  ✅ End frame saved: {end_frame_path}")
+
+            # Step B: Upload both frames to get hosted URLs
+            first_frame_url = self.video_generator._resolve_image_ref(current_first_frame)
+            end_frame_url = self.video_generator._resolve_image_ref(end_frame_path)
+            print(f"  📤 First frame & end frame uploaded to hosted URLs")
+
+            # Step C: Generate video with keyframes mode
+            print(f"  🎬 Generating video (keyframes, scene {scene_idx})...")
+            video_output = await self.video_generator.generate_single_video(
+                prompt=scene_text,
+                reference_image_paths=[first_frame_url, end_frame_url],
+                duration=self.video_duration,
+                width=vw,
+                height=vh,
+            )
+            video_output.save(video_path)
+            all_video_paths.append(video_path)
+            print(f"  ✅ Video saved: {video_path}")
+
+            # Use this scene's end_frame as next scene's first_frame
+            current_first_frame = end_frame_path
+
+        return all_video_paths
+
+    # ────────────────────────────────────────────────────
+    # Scene Chaining (ti2vid + img2img transition): original mode
+    # ────────────────────────────────────────────────────
+
     async def _generate_chained_scenes(self, scenes: list, reference_image: str, vw: int = 1152, vh: int = 768) -> list:
         """Generate scenes sequentially with frame chaining for continuity.
 
@@ -219,7 +307,7 @@ class Idea2VideoPipeline:
         user_requirement: str,
         style: str,
         reference_image: str = "",
-        scene_chaining: bool = False,
+        chaining_mode: str = "none",
         video_width: int = 0,
         video_height: int = 0,
     ) -> str:
@@ -233,11 +321,10 @@ class Idea2VideoPipeline:
                 If provided, this image is used as the first-frame reference
                 for ALL scene videos (ti2vid mode) instead of auto-generating
                 a character reference. Supports local file paths and URLs.
-            scene_chaining: If True, enable scene chaining mode — each scene's
-                first frame is derived from the previous scene's last frame via
-                image-to-image generation, creating visual continuity between
-                scenes. This is sequential (not parallel). Recommended with
-                10-second scenes and reference_image.
+            chaining_mode: Scene chaining strategy.
+                - "none": each scene independent, same reference image (default)
+                - "ti2vid": sequential with img2img transition frames
+                - "keyframes": sequential with first+last frame keyframes
             video_width: Video width in pixels (0 = use default from config).
             video_height: Video height in pixels (0 = use default from config).
         """
@@ -288,14 +375,37 @@ class Idea2VideoPipeline:
         for i, scene in enumerate(scenes):
             print(f"  Scene {i}: {scene[:100]}...")
         print(f"📌 Character reference: {character_ref_path}")
-        if scene_chaining:
-            print(f"🔗 Mode: Scene Chaining (sequential with frame continuity)")
+        print(f"🔗 Chaining mode: {chaining_mode}")
         print()
 
         # ── Step 4: For each scene -> generate video ──
         all_video_paths = []
 
-        if scene_chaining:
+        if chaining_mode == "keyframes":
+            # Keyframes chaining: first+last frame for each scene
+            # Generate end-frame prompts for each scene
+            end_frames_path = os.path.join(self.working_dir, "end_frame_prompts.json")
+            if os.path.exists(end_frames_path):
+                with open(end_frames_path, "r") as f:
+                    end_frame_prompts = json.load(f)
+                logger.info("End frame prompts loaded from cache.")
+            else:
+                end_frame_prompts = self.screenwriter.generate_end_frame_prompts(
+                    scenes, style
+                )
+                with open(end_frames_path, "w") as f:
+                    json.dump(end_frame_prompts, f, ensure_ascii=False, indent=2)
+
+            print(f"🖼️  END FRAME PROMPTS:")
+            for i, p in enumerate(end_frame_prompts):
+                print(f"  End Frame {i}: {p[:100]}...")
+            print()
+
+            all_video_paths = await self._generate_keyframe_chained_scenes(
+                scenes, end_frame_prompts, character_ref_path, vw, vh
+            )
+
+        elif chaining_mode == "ti2vid":
             # Scene chaining: sequential generation with frame continuity
             all_video_paths = await self._generate_chained_scenes(
                 scenes, character_ref_path, vw, vh
@@ -361,7 +471,7 @@ class Idea2VideoPipeline:
         user_requirement: str,
         style: str,
         reference_image: str = "",
-        scene_chaining: bool = False,
+        chaining_mode: str = "none",
         video_width: int = 0,
         video_height: int = 0,
     ) -> str:
@@ -371,7 +481,7 @@ class Idea2VideoPipeline:
             user_requirement=user_requirement,
             style=style,
             reference_image=reference_image,
-            scene_chaining=scene_chaining,
+            chaining_mode=chaining_mode,
             video_width=video_width,
             video_height=video_height,
         )

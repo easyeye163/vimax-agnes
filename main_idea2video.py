@@ -41,17 +41,13 @@ user_requirement = \
 style = "电影质感MV风格"
 
 # Optional: provide a reference image (local path or URL).
-# If set, this image will be used as the first-frame reference for
-# ALL scene videos (ti2vid mode), keeping character/scene consistency.
-# When empty, the pipeline auto-generates a character reference image.
 reference_image = "/home/z/my-project/upload/weixin-image.jpg"
 
-# Optional: enable scene chaining mode for visual continuity.
-# When True, each scene's first frame is derived from the previous
-# scene's last frame via image-to-image generation, creating smooth
-# transitions between scenes. Each scene should be ~10 seconds.
-# This mode is sequential (not parallel), so total time = N scenes × (video + img2img).
-scene_chaining = True
+# Chaining mode controls how scenes connect:
+#   "none"      — each scene independent, same reference image
+#   "ti2vid"    — sequential with img2img transition frames (original chaining)
+#   "keyframes" — sequential with first+last frame keyframes (NEW, smoother transitions)
+chaining_mode = "keyframes"
 
 # Video dimensions (portrait 768x1152 for vertical reference images)
 video_width = 768
@@ -102,7 +98,7 @@ async def main():
         user_requirement=user_requirement,
         style=style,
         reference_image=reference_image,
-        scene_chaining=scene_chaining,
+        chaining_mode=chaining_mode,
         video_width=video_width,
         video_height=video_height,
     )

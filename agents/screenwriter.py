@@ -188,6 +188,56 @@ Output ONLY the image prompt text, no JSON, no explanation.
         logger.info(f"[Screenwriter] Character prompt: {prompt[:100]}...")
         return prompt
 
+    def generate_end_frame_prompts(self, scenes: List[str], style: str) -> List[str]:
+        """Generate end-of-scene frame image prompts for keyframes mode.
+
+        For each scene, generates a detailed STATIC image prompt describing
+        what the scene looks like at its END — this becomes the last keyframe
+        for the keyframes video generation mode.
+
+        Returns list of prompt strings, one per scene.
+        """
+        scenes_text = ""
+        for i, scene in enumerate(scenes):
+            scenes_text += f"\nScene {i}: {scene}\n"
+
+        system_prompt = """\
+You are a visual prompt engineer for AI image generation. For each video scene \
+description below, generate a STATIC image prompt that represents what the scene \
+looks like at its very END — the final frame of the video.
+
+[Output Format] Return a JSON object:
+{
+  "end_frames": [
+    "End frame image prompt for Scene 0 (STATIC, detailed, English)...",
+    "End frame image prompt for Scene 1...",
+    ...
+  ]
+}
+
+Rules:
+- Each prompt must describe a STATIC frozen moment, NOT motion or action verbs.
+- The end frame must be visually consistent with the scene description — \
+same character, same outfit, same environment, same lighting.
+- Focus on: pose, facial expression, hand position, body posture, camera angle, \
+lighting, background elements — everything visible in a single frozen frame.
+- Include art style matching the scene (e.g., "realistic cinematic", "anime").
+- The character's appearance (face, body, clothing) must remain EXACTLY the same \
+across ALL end frames — only the pose, expression, and environment change.
+- Each prompt should be 3-5 sentences, rich in visual detail.
+- MUST be in ENGLISH for best image generation results.
+"""
+        user_prompt = f"""\
+<style>{style}</style>
+
+{scenes_text}
+"""
+        logger.info("[Screenwriter] Generating end frame prompts for keyframes mode...")
+        result = self._chat_json(system_prompt, user_prompt)
+        end_frames = result.get("end_frames", [])
+        logger.info(f"[Screenwriter] Generated {len(end_frames)} end frame prompts")
+        return end_frames
+
     def design_shots_for_scene(self, scene_text: str, style: str, max_shots: int = 5) -> list:
         """Design shot-level storyboard for a single scene."""
         system_prompt = """\
