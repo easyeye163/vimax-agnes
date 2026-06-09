@@ -189,10 +189,61 @@ vimax-agnes/
 4. **Scene Videos**: Each scene generates a video using the reference image (ti2vid mode) as the first frame
 5. **Concatenation**: All scene videos are joined into the final output
 
+## Generated Videos
+
+### 📁 videos/ — High Quality (HQ) outputs
+
+| File | Scenes | Duration | Size | Description |
+|------|--------|----------|------|-------------|
+| `baby_laugh_01_hq.mp4` | 8 | ~80s | 8.4MB | 宝宝笑第1集 - 阳光、躲猫猫、泡泡、小狗 |
+| `baby_laugh_02_hq.mp4` | 8 | ~80s | 8.6MB | 宝宝笑第2集 - 不同欢乐场景 |
+| `baby_laugh_03_hq.mp4` | 8 | ~80s | 6.4MB | 宝宝笑第3集 - 全新场景无字幕 |
+| `baby_sing_hq.mp4` | 8 | ~80s | 5.0MB | 宝宝唱歌 - 音乐欢乐场景 |
+| `baby_english_fruit_hq.mp4` | 8 | ~80s | 3.7MB | 宝宝学英文水果篇 - 带英文旁白 |
+| `baby_count_10_hq.mp4` | 10 | ~100s | 5.5MB | 宝宝学识数1-10 - 中英双语+形状口诀 |
+
+### 📁 prompts/ — Scene prompt JSON files
+
+| File | Scenes | Description |
+|------|--------|-------------|
+| `baby_laugh_01.json` | 8 | 宝宝笑第1集提示词 |
+| `baby_laugh_02.json` | 8 | 宝宝笑第2集提示词 |
+| `baby_laugh_03.json` | 8 | 宝宝笑第3集提示词（无字幕） |
+| `baby_sing.json` | 8 | 宝宝唱歌提示词 |
+| `baby_english_fruit.json` | 8 | 学英文水果篇提示词 |
+| `baby_count_10.json` | 10 | 识数1-10提示词 |
+
+### 📁 .working_dir/ — Raw generation data (scenes, first frames, task IDs)
+
+Each video project has its own subdirectory with:
+- `subtitles.json` — scene prompts
+- `task_ids.json` — API task tracking
+- `scenes/scene_N/` — first frame + raw video per scene
+
+## Video Generation Parameters
+
+| Parameter | Value |
+|-----------|-------|
+| Resolution | 768 x 1152 (vertical) |
+| FPS | 24 |
+| Frames per scene | 241 (~10s) |
+| Video model | agnes-video-v2.0 |
+| First frame model | agnes-image-2.1-flash |
+| HQ compression | CRF 26, scale 480:720, x264 fast |
+| Style keywords | kawaii cartoon, soft pastel colors, chibi, children's picture book art |
+
+## TTS Narration (Edge TTS)
+
+| Video | English Voice | Chinese Voice | Content |
+|-------|--------------|--------------|---------|
+| baby_english_fruit | en-US-JennyNeural | - | Fruit names: Apple, Banana, Grapes... |
+| baby_count_10 | en-US-JennyNeural | zh-CN-XiaoxiaoNeural | Numbers + shape mnemonics (1像树根, 2像小鸭...) |
+
 ## Credits
 
 - [ViMax](https://github.com/HKUDS/ViMax) -- Original agentic video generation framework
 - [Agnes AI](https://platform.agnes-ai.com) -- AI generation API
+- [Edge TTS](https://github.com/rany2/edge-tts) -- Text-to-speech narration
 
 ## License
 

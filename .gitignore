@@ -1,6 +1,10 @@
 .working_dir/
+videos/
 __pycache__/
 *.pyc
 .env
 .idea/
 .vscode/
+*.mp4
+*.mp3
+*.png
