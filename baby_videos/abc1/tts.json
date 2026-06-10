@@ -1,0 +1,18 @@
+{
+  "tts_voice": {
+    "zh": "zh-CN-XiaoxiaoNeural",
+    "en": "en-US-JennyNeural",
+    "zh_rate": "-10%",
+    "en_rate": "-15%"
+  },
+  "scenes": [
+    {"zh": "A！A是苹果！红红的苹果！", "en": "A is for Apple!"},
+    {"zh": "B！B是熊！棕色的小熊！", "en": "B is for Bear!"},
+    {"zh": "C！C是猫！橙色的小猫！", "en": "C is for Cat!"},
+    {"zh": "D！D是狗！白色的小狗！", "en": "D is for Dog!"},
+    {"zh": "E！E是鸡蛋！金色的煎蛋！", "en": "E is for Egg!"},
+    {"zh": "F！F是鱼！彩色的鱼！", "en": "F is for Fish!"},
+    {"zh": "G！G是葡萄！紫色的葡萄！", "en": "G is for Grapes!"},
+    {"zh": "H！H是帽子！生日帽子！", "en": "H is for Hat!"}
+  ]
+}

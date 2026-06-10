@@ -1,0 +1,18 @@
+{
+  "tts_voice": {
+    "zh": "zh-CN-XiaoxiaoNeural",
+    "en": "en-US-JennyNeural",
+    "zh_rate": "-10%",
+    "en_rate": "-15%"
+  },
+  "scenes": [
+    {"zh": "Q！Q是女王！女王好漂亮！", "en": "Q is for Queen!"},
+    {"zh": "R！R是彩虹！彩虹好美呀！", "en": "R is for Rainbow!"},
+    {"zh": "S！S是星星！星星亮晶晶！", "en": "S is for Star!"},
+    {"zh": "T！T是老虎！老虎嗷嗷叫！", "en": "T is for Tiger!"},
+    {"zh": "U！U是雨伞！雨伞挡风雨！", "en": "U is for Umbrella!"},
+    {"zh": "V！V是小提琴！琴声真好听！", "en": "V is for Violin!"},
+    {"zh": "W！W是西瓜！西瓜好甜呀！", "en": "W is for Watermelon!"},
+    {"zh": "X！X是木琴！叮叮当当！", "en": "X is for Xylophone!"}
+  ]
+}

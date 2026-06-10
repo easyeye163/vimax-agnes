@@ -1,0 +1,18 @@
+{
+  "tts_voice": {
+    "zh": "zh-CN-XiaoxiaoNeural",
+    "en": "en-US-JennyNeural",
+    "zh_rate": "-10%",
+    "en_rate": "-15%"
+  },
+  "scenes": [
+    {"zh": "Y！Y是帆船！帆船在大海上！", "en": "Y is for Yacht!"},
+    {"zh": "Z！Z是斑马！斑马黑白条纹！", "en": "Z is for Zebra!"},
+    {"zh": "1！一！一个大气球！", "en": "One!"},
+    {"zh": "2！二！两只小鸡！", "en": "Two!"},
+    {"zh": "3！三！三只蝴蝶！", "en": "Three!"},
+    {"zh": "4！四！四只瓢虫！", "en": "Four!"},
+    {"zh": "5！五！五颗星星！", "en": "Five!"},
+    {"zh": "6！六！六根棒棒糖！", "en": "Six!"}
+  ]
+}

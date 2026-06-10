@@ -1,0 +1,18 @@
+{
+  "tts_voice": {
+    "zh": "zh-CN-XiaoxiaoNeural",
+    "en": "en-US-JennyNeural",
+    "zh_rate": "-10%",
+    "en_rate": "-15%"
+  },
+  "scenes": [
+    {"zh": "I！I是冰淇淋！冰淇淋甜甜的！", "en": "I is for Ice cream!"},
+    {"zh": "J！J是果汁！果汁真好喝！", "en": "J is for Juice!"},
+    {"zh": "K！K是风筝！风筝飞得好高！", "en": "K is for Kite!"},
+    {"zh": "L！L是狮子！狮子好威风！", "en": "L is for Lion!"},
+    {"zh": "M！M是月亮！月亮弯弯的！", "en": "M is for Moon!"},
+    {"zh": "N！N是鸟巢！小鸟的家！", "en": "N is for Nest!"},
+    {"zh": "O！O是橙子！橙子酸酸甜甜！", "en": "O is for Orange!"},
+    {"zh": "P！P是熊猫！熊猫好可爱！", "en": "P is for Panda!"}
+  ]
+}

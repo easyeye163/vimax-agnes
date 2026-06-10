@@ -1,0 +1,18 @@
+{
+  "tts_voice": {
+    "zh": "zh-CN-XiaoxiaoNeural",
+    "en": "en-US-JennyNeural",
+    "zh_rate": "-10%",
+    "en_rate": "-15%"
+  },
+  "scenes": [
+    {"zh": "猫！小猫咪！喵喵喵！好可爱！", "en": "Cat! Kitty cat!"},
+    {"zh": "狗！小狗！汪汪汪！好朋友！", "en": "Dog! Puppy dog!"},
+    {"zh": "鹦鹉！鹦鹉会说话！你好你好！", "en": "Parrot! Hello hello!"},
+    {"zh": "长颈鹿！长颈鹿好高呀！吃树叶！", "en": "Giraffe! So tall!"},
+    {"zh": "青蛙！青蛙呱呱跳！扑通扑通！", "en": "Frog! Ribbit!"},
+    {"zh": "大象！大象好大呀！长长的鼻子！", "en": "Elephant! So big!"},
+    {"zh": "鱼！小鱼游泳！游啊游！", "en": "Fish! Swimming!"},
+    {"zh": "动物朋友们！大家都来玩！", "en": "Animal friends!"}
+  ]
+}

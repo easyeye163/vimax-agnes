@@ -1,0 +1,18 @@
+{
+  "tts_voice": {
+    "zh": "zh-CN-XiaoxiaoNeural",
+    "en": "en-US-JennyNeural",
+    "zh_rate": "-10%",
+    "en_rate": "-15%"
+  },
+  "scenes": [
+    {"zh": "爸爸！爸爸好伟大！我爱你爸爸！", "en": "Daddy!"},
+    {"zh": "妈妈！妈妈好温柔！我爱你妈妈！", "en": "Mommy!"},
+    {"zh": "爷爷！爷爷戴眼镜！爷爷讲故事！", "en": "Grandpa!"},
+    {"zh": "奶奶！奶奶做饭菜！好香呀！", "en": "Grandma!"},
+    {"zh": "外公！外公拄拐杖！一起散步！", "en": "Grandpa!"},
+    {"zh": "外婆！外婆摇啊摇！唱摇篮曲！", "en": "Grandma!"},
+    {"zh": "舅舅！舅舅打球！接住球！", "en": "Uncle!"},
+    {"zh": "阿姨！阿姨穿裙子！送礼物！", "en": "Auntie!"}
+  ]
+}

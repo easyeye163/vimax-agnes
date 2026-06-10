@@ -1,0 +1,18 @@
+{
+  "tts_voice": {
+    "zh": "zh-CN-XiaoxiaoNeural",
+    "en": "en-US-JennyNeural",
+    "zh_rate": "-10%",
+    "en_rate": "-15%"
+  },
+  "scenes": [
+    {"zh": "汽车！红色的汽车！滴滴滴！", "en": "Car! Red car!"},
+    {"zh": "火车！大火车！呜呜呜！", "en": "Train! Choo choo!"},
+    {"zh": "公交车！黄色的校车！上学啦！", "en": "Bus! School bus!"},
+    {"zh": "飞机！小飞机！飞上天啦！", "en": "Airplane! Flying!"},
+    {"zh": "小船！绿色的小船！飘啊飘！", "en": "Boat! Rowing!"},
+    {"zh": "消防车！红色的消防车！呜呜呜！", "en": "Fire truck!"},
+    {"zh": "自行车！骑自行车！叮铃铃！", "en": "Bicycle! Ring ring!"},
+    {"zh": "火箭！火箭发射！嗖！", "en": "Rocket! Whoosh!"}
+  ]
+}
