@@ -1,0 +1,19 @@
+{
+  "title": "小学生自然探索",
+  "description": "8场景×5秒=40秒，连续中文配音，1280×704横屏",
+  "model": "agnes-video-v2.0",
+  "size": "1280x720",
+  "duration_per_scene": 5,
+  "tts_voice": "zh-CN-XiaoxiaoNeural",
+  "tts_rate": "-5%",
+  "prompts": [
+    "A breathtaking cartoon sunrise over misty mountains with golden sunlight painting the sky orange and pink, birds flying in V formation, nature documentary style",
+    "A lush green cartoon rainforest with a colorful parrot perched on a branch, tropical flowers blooming, butterflies fluttering around, vibrant greens",
+    "A gentle cartoon savanna scene with a baby elephant playing in a small watering hole, acacia trees in background, warm golden light",
+    "A peaceful cartoon coral reef with a sea turtle gliding over colorful corals and tropical fish, crystal clear turquoise water",
+    "A magical cartoon winter forest scene with snow-covered pine trees and a deer walking through fresh snow, soft blue-white lighting",
+    "A cheerful cartoon garden full of blooming sunflowers with bees collecting pollen, ladybugs on leaves, bright warm sunshine",
+    "A dramatic cartoon desert scene with a camel walking across golden sand dunes under a brilliant orange sunset sky, cacti silhouettes",
+    "A beautiful cartoon waterfall cascading down mossy rocks into a crystal pool surrounded by ferns and orchids, misty rainbows in the air"
+  ]
+}

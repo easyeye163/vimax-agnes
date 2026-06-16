@@ -1,0 +1,19 @@
+{
+  "title": "小学生数学乐园",
+  "description": "8场景×5秒=40秒，连续中文配音，1280×704横屏",
+  "model": "agnes-video-v2.0",
+  "size": "1280x720",
+  "duration_per_scene": 5,
+  "tts_voice": "zh-CN-XiaoxiaoNeural",
+  "tts_rate": "-5%",
+  "prompts": [
+    "A colorful cartoon classroom scene with a cheerful young girl counting colorful building blocks, bright warm lighting, children's educational style, 4k quality",
+    "A playful cartoon scene of children counting bright red apples on a big tree in a sunny orchard, warm colors, kids education style",
+    "A cute cartoon scene of a puppy and kitten playing with colorful wooden number blocks scattered on green grass, cheerful mood",
+    "A magical cartoon underwater scene with a friendly octopus counting colorful starfish on a coral reef, vibrant blue water",
+    "A fun cartoon scene of a monkey adding bananas in bunches hanging from a tropical tree, playful warm atmosphere",
+    "A sweet cartoon scene of children sharing colorful candies equally at a birthday party, bright and cheerful colors",
+    "A space-themed cartoon scene with a rocket ship flying past colorful planets shaped like geometric shapes, educational style",
+    "A festive classroom celebration with cartoon children cheering around a big trophy cup filled with golden stars, confetti falling"
+  ]
+}

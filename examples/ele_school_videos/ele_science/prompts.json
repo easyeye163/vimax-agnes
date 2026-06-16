@@ -1,0 +1,19 @@
+{
+  "title": "小学生科学探索",
+  "description": "8场景×5秒=40秒，连续中文配音，1280×704横屏",
+  "model": "agnes-video-v2.0",
+  "size": "1280x720",
+  "duration_per_scene": 5,
+  "tts_voice": "zh-CN-XiaoxiaoNeural",
+  "tts_rate": "-5%",
+  "prompts": [
+    "A colorful cartoon science lab with a curious girl wearing safety goggles watching a baking soda volcano erupt rainbow bubbles, bright lighting",
+    "A magical cartoon scene of a friendly wizard mixing colorful glowing potions in crystal beakers, sparkles floating in the air, science fantasy",
+    "A cheerful cartoon butterfly landing on a magnifying glass held by a child examining a flower, sunny garden, detailed petals visible",
+    "A playful cartoon scene of a cat sitting next to a blue beaker of water on a hot stove, steam rising and bubbles forming, educational",
+    "A dreamy cartoon night sky filled with colorful planets, a friendly alien waving from a small spaceship, stars twinkling, kids science",
+    "A vibrant cartoon coral reef underwater with tropical fish swimming around, sunlight filtering through clear blue water, educational nature",
+    "A cute cartoon raindrop character falling from a fluffy cloud into a river, showing the water cycle journey, soft blue and white colors",
+    "A cheerful cartoon kitchen scene with a child watching a balloon inflate from baking soda and vinegar experiment in a bottle, excitement"
+  ]
+}
