@@ -9,8 +9,14 @@
 | 🔢 ele_math | 数学乐园 | 40秒 | 1280×704 | 连续中文 |
 | 🔬 ele_science | 科学探索 | 40秒 | 1280×704 | 连续中文 |
 | 🌍 ele_nature | 自然探索 | 40秒 | 1280×704 | 连续中文 |
+| 📖 ele_english | 英语学习 | 40秒 | 1280×704 | 连续中文 |
+| ⚽ ele_pe | 体育运动 | 40秒 | 1280×704 | 连续中文 |
+| 📝 ele_study | 学习方法 | 40秒 | 1280×704 | 连续中文 |
 
 每集 **8个场景 × 5秒 = 40秒**，中英文提示词驱动图片生成，连续中文TTS配音。
+
+- 前三集（math/science/nature）侧重知识启蒙，激发学习兴趣
+- 后三集（english/pe/study）侧重学习方法，培养良好学习习惯
 
 ## 目录结构
 
@@ -24,6 +30,15 @@ ele_school_videos/
 │   ├── prompts.json
 │   └── tts.json
 ├── ele_nature/
+│   ├── prompts.json
+│   └── tts.json
+├── ele_english/
+│   ├── prompts.json
+│   └── tts.json
+├── ele_pe/
+│   ├── prompts.json
+│   └── tts.json
+├── ele_study/
 │   ├── prompts.json
 │   └── tts.json
 └── README.md                # 本文件

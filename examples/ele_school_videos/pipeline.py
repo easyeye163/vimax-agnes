@@ -41,6 +41,9 @@ EPISODES = [
     ("ele_math", "ele_math/prompts.json", "ele_math/tts.json"),
     ("ele_science", "ele_science/prompts.json", "ele_science/tts.json"),
     ("ele_nature", "ele_nature/prompts.json", "ele_nature/tts.json"),
+    ("ele_english", "ele_english/prompts.json", "ele_english/tts.json"),
+    ("ele_pe", "ele_pe/prompts.json", "ele_pe/tts.json"),
+    ("ele_study", "ele_study/prompts.json", "ele_study/tts.json"),
 ]
 
 SCENES_PER_EP = 8
